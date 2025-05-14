@@ -1,4 +1,4 @@
-name: solar_tater
+name: solar_annotate
 channels:
   - conda-forge
 dependencies:
@@ -16,4 +16,4 @@ dependencies:
   - pip
   - pip:
       - pyqt5>=5.15.9
-      - goes-solar-retriever 
+      - goes-solar-retriever
