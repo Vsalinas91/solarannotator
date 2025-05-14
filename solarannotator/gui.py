@@ -3,7 +3,7 @@ import PyQt5
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QWidget, QLabel, QAction, QTabWidget, QPushButton, QFileDialog, QRadioButton, QMessageBox, \
     QComboBox, QLineEdit, QSizePolicy, QCheckBox
-from PyQt5.QtCore import QDateTime
+from PyQt5.QtCore import QDateTime, Qt
 from PyQt5.QtGui import QIcon, QDoubleValidator
 from datetime import datetime, timedelta
 from matplotlib import path
@@ -28,6 +28,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 from .config import Config
 from .io import ThematicMap, ImageSet
+from .local_io import LocalImageSet
 
 
 class AnnotationWidget(QtWidgets.QWidget):
@@ -211,13 +212,22 @@ class AnnotationWidget(QtWidgets.QWidget):
         self.region_patches = []
         self.fig.canvas.draw_idle()
 
-    def loadThematicMap(self, thmap, template=True):
+    def loadThematicMap(self, thmap, local_retrieve, local_dir, satellite, template=True):
         try:
-            download_message = QMessageBox.information(self,
+            if local_retrieve:
+                download_message = QMessageBox.information(
+                        self,
+                        "Retrieving Data",
+                        f'Getting data from local dir {local_dir} for {satellite}.',
+                        QMessageBox.Ok
+                )
+                self.composites = LocalImageSet.retrieve(local_dir, satellite, thmap.date_obs)
+            else:
+                download_message = QMessageBox.information(self,
                                                        'Downloading',
                                                        "Downloads may take a few moments. Click 'ok' to proceed.",
                                                        QMessageBox.Ok)
-            self.composites = ImageSet.retrieve(thmap.date_obs)
+                self.composites = ImageSet.retrieve(thmap.date_obs)
         except RuntimeError:
             self.data_does_not_exist_popup()
         else:
@@ -269,7 +279,7 @@ class AnnotationWidget(QtWidgets.QWidget):
         self.preview_data[self.preview_data[:, :, 1] > green_upper] = green_upper
         self.preview_data[self.preview_data[:, :, 2] < blue_lower] = blue_lower
         self.preview_data[self.preview_data[:, :, 2] > blue_upper] = blue_upper
-        
+
         for index in [0, 1, 2]:
             # self.preview_data[:, :, index] /= np.nanmax(self.preview_data[:, :, index])
             self.preview_data[:, :, index] = (self.preview_data[:, :, index] - np.nanmin(self.preview_data[:, :, index])) \
@@ -480,18 +490,73 @@ class NewFilePopup(QWidget):
         self.initUI()
 
     def initUI(self):
-        layout = QtWidgets.QHBoxLayout()
+        main_layout = QtWidgets.QHBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
+        sat_select_layout = QtWidgets.QHBoxLayout()
+        layout_local = QtWidgets.QVBoxLayout() # add vertical box
+        # Create the widgets
         instructions = QLabel("Please select a time for the new file.", self)
         self.dateEdit = QtWidgets.QDateTimeEdit(QDateTime.currentDateTime())
+        self.localCheck = QtWidgets.QCheckBox("Use Local Data", self)
+        self.workingDirLabel = QLabel("Enter Your Local Working Directory:")
+        self.workingDir = QtWidgets.QLineEdit("/path/to/suvi-l2-ci-data", self)
+        self.workingDir.setFixedWidth(620)
         self.template_option = QCheckBox("Use template")
         self.template_option.setChecked(True)
         submit_button = QPushButton("Submit")
+        # For satellite selection:
+        self.sat_select = QLabel("Select Satellite:")
+        self.g16_radio = QtWidgets.QRadioButton("GOES-16")
+        self.g17_radio = QtWidgets.QRadioButton("GOES-17")
+        self.g18_radio = QtWidgets.QRadioButton("GOES-18")
+        self.g19_radio = QtWidgets.QRadioButton("GOES-19")
+        sat_select_layout.addWidget(self.g16_radio)
+        sat_select_layout.addWidget(self.g17_radio)
+        sat_select_layout.addWidget(self.g18_radio)
+        sat_select_layout.addWidget(self.g19_radio)
+        # Hide local config inputs unless checkbox is checked:
+        self.workingDirLabel.setVisible(False)
+        self.workingDir.setVisible(False)
+        # Put them in their respective containers
         layout.addWidget(instructions)
         layout.addWidget(self.dateEdit)
         layout.addWidget(self.template_option)
-        layout.addWidget(submit_button)
-        self.setLayout(layout)
+        layout.addWidget(self.sat_select)
+        layout.addLayout(sat_select_layout)
+        layout_local.addWidget(self.localCheck)
+        layout_local.addWidget(self.workingDirLabel)
+        layout_local.addWidget(self.workingDir)
+        layout_local.addWidget(submit_button)
+        main_layout.addLayout(layout)
+        main_layout.addLayout(layout_local)
+        self.setLayout(main_layout)
+        # Now make visibile the local config input widgets:
+        self.localCheck.stateChanged.connect(self.update_visibility)
+        self.g16_radio.toggled.connect(self.select_satellite)
+        self.g17_radio.toggled.connect(self.select_satellite)
+        self.g18_radio.toggled.connect(self.select_satellite)
+        self.g19_radio.toggled.connect(self.select_satellite)
         submit_button.clicked.connect(self.onSubmit)
+
+    def update_visibility(self, state):
+        # make the working dir input field visible only if checkbox is checked:
+        if state == Qt.Checked:
+            self.workingDirLabel.setVisible(True)
+            self.workingDir.setVisible(True)
+        else:
+            self.workingDirLabel.setVisible(False)
+            self.workingDir.setVisible(False)
+
+    def select_satellite(self, state):
+        # select the satellite we're looking for data for
+        if self.g16_radio.isChecked():
+            self.satellite = "GOES16"
+        elif self.g17_radio.isChecked():
+            self.satellite = "GOES17"
+        elif self.g18_radio.isChecked():
+            self.satellite = "GOES18"
+        elif self.g19_radio.isChecked():
+            self.satellite = "GOES19"
 
     def onSubmit(self):
         # set the date in the application and close
@@ -500,10 +565,16 @@ class NewFilePopup(QWidget):
                                 {'DATE-OBS': str(self.parent.date),
                                  'DATE': str(datetime.today())},
                                 self.parent.config.solar_class_name)
-        self.parent.annotator.loadThematicMap(new_thmap, self.template_option.isChecked())
+        self.parent.annotator.loadThematicMap(
+            new_thmap,
+            self.localCheck.checkState(),
+            self.workingDir.text(),
+            self.satellite,
+            self.template_option.isChecked()
+        )
         self.parent.controls.onTabChange()  # Us
         self.close()
-        self.parent.setWindowTitle("SolarAnnotator: {}".format(new_thmap.date_obs))
+        self.parent.setWindowTitle(f"SolarAnnotator: {self.satellite} {new_thmap.date_obs}")
 
 
 class ApplicationWindow(QtWidgets.QMainWindow):
@@ -578,7 +649,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             radiobuttons[theme].setStyleSheet("QRadioButton"
                                        "{"
                                        "background-color : " + background_color + ";"
-                                       "color :" + font_color + ""                                       
+                                       "color :" + font_color + ""
                                        "}")
 
             theme_selection_layout.addWidget(radiobuttons[theme])
