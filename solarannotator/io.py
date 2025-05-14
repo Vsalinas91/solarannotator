@@ -20,8 +20,8 @@ class ImageSet:
         self.images = mapping
 
     @staticmethod
-    def retrieve(date):
-        full_set = ImageSet._load_suvi_composites(date)
+    def retrieve(satellite, date):
+        full_set = ImageSet._load_suvi_composites(satellite, date)
         full_set['gong'] = ImageSet._load_gong_image(date, full_set['195'])
         return ImageSet(full_set)
 
@@ -56,8 +56,8 @@ class ImageSet:
         return Image(out.data, dict(out.meta))
 
     @staticmethod
-    def _load_suvi_composites(date):
-        satellite = Satellite.GOES16
+    def _load_suvi_composites(satellite, date):
+        satellite = getattr(Satellite, satellite)
         products = {"94": Product.suvi_l2_ci094,
                     "131": Product.suvi_l2_ci131,
                     "171": Product.suvi_l2_ci171,

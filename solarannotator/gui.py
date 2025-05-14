@@ -227,7 +227,7 @@ class AnnotationWidget(QtWidgets.QWidget):
                                                        'Downloading',
                                                        "Downloads may take a few moments. Click 'ok' to proceed.",
                                                        QMessageBox.Ok)
-                self.composites = ImageSet.retrieve(thmap.date_obs)
+                self.composites = ImageSet.retrieve(satellite, thmap.date_obs)
         except RuntimeError:
             self.data_does_not_exist_popup()
         else:
