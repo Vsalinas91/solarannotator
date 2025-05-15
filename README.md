@@ -9,7 +9,7 @@ A tool for annotating solar images with themes.
 ![](screenshot.png)
 
 ## Install
-It's best to install in a clean virtual environment to avoid package conflicts or incorrect versions. 
+It's best to install in a clean virtual environment to avoid package conflicts or incorrect versions. Below are the instructions for setting up a new virtual environment using python.
 
 On a Mac or Linux machine:
 ```
@@ -27,6 +27,12 @@ py -m pip install solarannotator
 
 For more details [visit the Packaging guide](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#creating-a-virtual-environment).
 
+
+For setting up an environment using conda - not necessary, but an alternative method:
+```
+conda env create -f environment.yml
+```
+
 ## Running and usage
 Execute from the terminal after installing by running inside your virtual environment.
 ```SolarAnnotator```
@@ -39,6 +45,12 @@ the image by raising all pixels to the selected power.
 You interact by drawing on the preview image to create new regions in the thematic map. You can also
 relabel those patches by left-clicking in the thematic map with a new theme selected. Finally, you can see
 boundaries of regions from the thematic map back in the preview image by right clicking the thematic map. 
+
+Updates [2025-05-14]:
+A few updates have been implemented into the code base, these includes: 
+
+ - Ability to load data from a local directory 
+ - Ability to select the satellite to pull SUVI data for (both for local and remote access)
 
 ## Future
 This tool is still under development. There are many features coming. 
