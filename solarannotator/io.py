@@ -130,9 +130,9 @@ class ImageSet:
                     # Appends average to image averages
                     img_avgs.append(np.mean(solar_layer))
                 # Find "drop off" where mask causes average image brightness to drop
-                diff_avgs = np.asarray(img_avgs[0:accuracy - 1]) - np.asarray(img_avgs[1:accuracy])
+                diff_avgs = np.abs(np.asarray(img_avgs[0:accuracy - 1]) - np.asarray(img_avgs[1:accuracy]))
                 # Return the radius that best represents the edge of the sun
-                solar_radius = rad_iterate[np.where(diff_avgs == np.amin(diff_avgs))[0] + 1]
+                solar_radius = rad_iterate[np.where(diff_avgs == np.amax(diff_avgs))[0] + 1]
         except KeyError:
             raise RuntimeError("Header does not include the solar diameter or radius")
         else:
