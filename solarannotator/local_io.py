@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from collections import namedtuple
 from astropy.io import fits
+from sunpy.coordinates import SphericalScreen
 
 """ how to reference in GUI
 import .local_io as local_io
@@ -104,7 +105,7 @@ class LocalImageSet(ImageSet):
         suvi_map = sunpy.map.Map(suvi_195_image.data, suvi_195_image.header)
         suvi_head = suvi_195_image.header
 
-        with Helioprojective.assume_spherical_screen(suvi_map.observer_coordinate, only_off_disk=True):
+        with SphericalScreen(suvi_map.observer_coordinate, only_off_disk=True):
             out = gong_map.reproject_to(suvi_head)
 
         return Image(out.data, dict(out.meta))
