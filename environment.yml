@@ -8,7 +8,7 @@ dependencies:
   - scipy>=1.11.1
   - scikit-image>=0.21.0
   - pillow>=10.0.0
-  - sunpy>=5.0.0
+  - sunpy>=6.0.0
   - lxml>=4.9.3
   - reproject>=0.11.0
   - zeep>=4.2.1
