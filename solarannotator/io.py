@@ -9,7 +9,7 @@ from sunpy.net import Fido, attrs as a
 import astropy.units as u
 from datetime import timedelta
 import sunpy.map
-from sunpy.coordinates import Helioprojective
+from sunpy.coordinates import SphericalScreen
 
 Image = namedtuple('Image', 'data header')
 
@@ -50,7 +50,7 @@ class ImageSet:
         suvi_map = sunpy.map.Map(suvi_195_image.data, suvi_195_image.header)
         suvi_head = suvi_195_image.header
 
-        with Helioprojective.assume_spherical_screen(suvi_map.observer_coordinate, only_off_disk=True):
+        with SphericalScreen(suvi_map.observer_coordinate, only_off_disk=True):
             out = gong_map.reproject_to(suvi_head)
 
         return Image(out.data, dict(out.meta))
